@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# Email configuration
+TO="hesham.abouaisha@bmo.com"
+CC="TESPEAdvancedDataPlatformEngineering_Hadoop@bmo.com"
+SUBJECT="HDFS Report - $(date +%Y-%m-%d)"
+REPORT="/tmp/hdfs_report.txt"
+
+# Collect HDFS metrics
+FILES_DIRS=$(sudo -u hdfs hdfs dfs -count / | awk '{print $1}')
+TOTAL_BLOCKS=$(sudo -u hdfs hdfs fsck / -files -blocks -locations 2>/dev/null | grep "Total blocks" | awk '{print $4}')
+DFS_USED=$(sudo -u hdfs hdfs dfsadmin -report | grep "DFS Used:" | head -1 | awk '{print $3}')
+
+# Generate report
+cat > $REPORT << EOF
+HDFS Report - $(date +%Y-%m-%d)
+================================
+
+Files and Directories: $FILES_DIRS
+Total Blocks:          $TOTAL_BLOCKS
+DFS Used:              $DFS_USED
+
+================================
+EOF
+
+# Send email
+cat $REPORT | mail -s "$SUBJECT" -c $CC $TO
+
+echo "Report sent to $TO"
+cat $REPORT
