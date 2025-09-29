@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Email configuration
-TO="hesham.abouaisha@bmo.com"
-CC="TESPEAdvancedDataPlatformEngineering_Hadoop@bmo.com"
+TO=""
+CC=""
 SUBJECT="HDFS Report - $(date +%Y-%m-%d)"
 REPORT="/tmp/hdfs_report.html"
 
