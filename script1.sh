@@ -27,14 +27,10 @@ cat > $REPORT << EOF
 EOF
 
 # Send email
-(
-  echo "To: $TO"
-  echo "Cc: $CC"
-  echo "Subject: $SUBJECT"
-  echo "Content-Type: text/html"
-  echo "MIME-Version: 1.0"
-  echo ""
-  cat $REPORT
-) | /usr/sbin/sendmail -t
+cat $REPORT | mail -s "$(echo -e "$SUBJECT\nContent-Type: text/html")" -c $CC $TO
 
-echo "Report sent to $TO"
+if [ $? -eq 0 ]; then
+  echo "Report sent to $TO"
+else
+  echo "Error sending email. Report saved at: $REPORT"
+fi
