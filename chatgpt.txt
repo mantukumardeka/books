@@ -1,0 +1,83 @@
+#!/bin/bash
+
+##############################################
+# HDFS Stats Report - Pure Shell Script
+##############################################
+
+# Configuration
+NAMENODE="enchbcclprcmp64.srv.bmogc.net"
+PORT="50070"
+EMAIL="your-email@example.com"  # Change this
+REPORT_FILE="/tmp/hdfs_stats_report.txt"
+
+# Function to convert bytes to human readable format
+bytes_to_human() {
+    local bytes="$1"
+
+    # Validate input (must be non-empty and numeric)
+    if [ -z "$bytes" ] || ! [[ "$bytes" =~ ^[0-9]+$ ]]; then
+        echo "N/A"
+        return
+    fi
+
+    if (( bytes < 1024 )); then
+        echo "${bytes} B"
+    elif (( bytes < 1048576 )); then
+        echo "$((bytes / 1024)) KB"
+    elif (( bytes < 1073741824 )); then
+        echo "$((bytes / 1048576)) MB"
+    elif (( bytes < 1099511627776 )); then
+        echo "$((bytes / 1073741824)) GB"
+    else
+        echo "$((bytes / 1099511627776)) TB"
+    fi
+}
+
+# Get stats from NameNode
+URL="http://${NAMENODE}:${PORT}/jmx?qry=Hadoop:service=NameNode,name=FSNamesystemState"
+
+# Create report file header
+cat > "$REPORT_FILE" << EOF
+=========================================
+HDFS Statistics Report - $(date)
+=========================================
+EOF
+
+# Fetch data
+DATA=$(curl -s "$URL")
+
+# Extract values - using simpler grep patterns
+FILES=$(echo "$DATA" | grep -o '"FilesTotal":[0-9]*' | cut -d':' -f2)
+TOTAL_OBJECTS=$(echo "$DATA" | grep -o '"TotalFiles":[0-9]*' | cut -d':' -f2)
+BLOCKS=$(echo "$DATA" | grep -o '"BlocksTotal":[0-9]*' | cut -d':' -f2)
+DFS_USED_BYTES=$(echo "$DATA" | grep -o '"CapacityUsed":[0-9]*' | cut -d':' -f2)
+
+# Set defaults if empty
+FILES=${FILES:-0}
+TOTAL_OBJECTS=${TOTAL_OBJECTS:-0}
+BLOCKS=${BLOCKS:-0}
+DFS_USED_BYTES=${DFS_USED_BYTES:-0}
+
+# Calculate directories safely
+DIRS=$((TOTAL_OBJECTS - FILES))
+
+# Format DFS Used
+DFS_USED=$(bytes_to_human "$DFS_USED_BYTES")
+
+# Append results to report file
+cat >> "$REPORT_FILE" << EOF
+1) DFS Used:          $DFS_USED
+2) Files:             $FILES
+   Directories:       $DIRS
+3) Total Blocks:      $BLOCKS
+=========================================
+EOF
+
+# Display report on console
+cat "$REPORT_FILE"
+
+# Send email
+cat "$REPORT_FILE" | mailx -s "HDFS Statistics Report" "$EMAIL"
+
+echo ""
+echo "Report sent to: $EMAIL"
