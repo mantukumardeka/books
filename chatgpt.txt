@@ -81,3 +81,10 @@ cat "$REPORT_FILE" | mailx -s "HDFS Statistics Report" "$EMAIL"
 
 echo ""
 echo "Report sent to: $EMAIL"
+
+
+
+---
+
+curl -s "http://enchbcclprcmp64.srv.bmogc.net:50070/jmx?qry=Hadoop:service=NameNode,name=FSNamesystemState" | head -50
+
