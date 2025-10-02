@@ -260,3 +260,91 @@ cat "$REPORT_FILE" | mailx -s "HDFS Statistics Report" "$EMAIL"
 
 echo ""
 echo "Report sent to: $EMAIL"
+
+
+===========final one =========
+
+
+#!/bin/bash
+
+##############################################
+# HDFS Stats Report - No jq, floating point sizes
+##############################################
+
+# Configuration
+NAMENODE="enchbcclprcmp64.srv.bmogc.net"
+PORT="50070"
+EMAIL="your-email@example.com"  # <-- Change this
+REPORT_FILE="/tmp/hdfs_stats_report.txt"
+
+# Function to convert bytes to human readable format with 2 decimals
+bytes_to_human() {
+    local bytes="$1"
+
+    if [ -z "$bytes" ] || ! [[ "$bytes" =~ ^[0-9]+$ ]]; then
+        echo "N/A"
+        return
+    fi
+
+    if (( bytes < 1024 )); then
+        echo "${bytes} B"
+    elif (( bytes < 1048576 )); then
+        echo "$(echo "scale=2; $bytes/1024" | bc) KB"
+    elif (( bytes < 1073741824 )); then
+        echo "$(echo "scale=2; $bytes/1048576" | bc) MB"
+    elif (( bytes < 1099511627776 )); then
+        echo "$(echo "scale=2; $bytes/1073741824" | bc) GB"
+    elif (( bytes < 1125899906842624 )); then
+        echo "$(echo "scale=2; $bytes/1099511627776" | bc) TB"
+    else
+        echo "$(echo "scale=2; $bytes/1125899906842624" | bc) PB"
+    fi
+}
+
+# JMX endpoint
+URL="http://${NAMENODE}:${PORT}/jmx?qry=Hadoop:service=NameNode,name=FSNamesystemState"
+
+# Fetch JSON from NameNode (requires kinit already done if Kerberos is enabled)
+DATA=$(curl --negotiate -u: -s "$URL")
+
+# Extract metrics using grep/awk/sed (no jq)
+FILES=$(echo "$DATA" | grep -o '"FilesTotal"[[:space:]]*:[[:space:]]*[0-9]*' | awk -F: '{print $2}' | tr -d ' ')
+BLOCKS=$(echo "$DATA" | grep -o '"BlocksTotal"[[:space:]]*:[[:space:]]*[0-9]*' | awk -F: '{print $2}' | tr -d ' ')
+DFS_USED_BYTES=$(echo "$DATA" | grep -o '"CapacityUsed"[[:space:]]*:[[:space:]]*[0-9]*' | awk -F: '{print $2}' | tr -d ' ')
+DFS_CAPACITY=$(echo "$DATA" | grep -o '"CapacityTotal"[[:space:]]*:[[:space:]]*[0-9]*' | awk -F: '{print $2}' | tr -d ' ')
+DFS_REMAINING=$(echo "$DATA" | grep -o '"CapacityRemaining"[[:space:]]*:[[:space:]]*[0-9]*' | awk -F: '{print $2}' | tr -d ' ')
+
+# Defaults if empty
+FILES=${FILES:-0}
+BLOCKS=${BLOCKS:-0}
+DFS_USED_BYTES=${DFS_USED_BYTES:-0}
+DFS_CAPACITY=${DFS_CAPACITY:-0}
+DFS_REMAINING=${DFS_REMAINING:-0}
+
+# Convert to human readable format with floating point
+DFS_USED=$(bytes_to_human "$DFS_USED_BYTES")
+DFS_CAPACITY_HR=$(bytes_to_human "$DFS_CAPACITY")
+DFS_REMAINING_HR=$(bytes_to_human "$DFS_REMAINING")
+
+# Create report file
+cat > "$REPORT_FILE" << EOF
+=========================================
+HDFS Statistics Report - $(date)
+=========================================
+1) DFS Capacity:      $DFS_CAPACITY_HR
+2) DFS Used:          $DFS_USED
+3) DFS Remaining:     $DFS_REMAINING_HR
+4) Files:             $FILES
+5) Total Blocks:      $BLOCKS
+=========================================
+EOF
+
+# Display report on console
+cat "$REPORT_FILE"
+
+# Send email
+cat "$REPORT_FILE" | mailx -s "HDFS Statistics Report" "$EMAIL"
+
+echo ""
+echo "Report sent to: $EMAIL"
+
