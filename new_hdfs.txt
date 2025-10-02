@@ -1,0 +1,52 @@
+#!/bin/bash
+
+##############################################
+# HDFS Stats Report - Pure Shell Script
+##############################################
+
+# Configuration
+NAMENODE="enchbcclb2adm01.srv.bmogc.net"
+PORT="50070"
+
+# Function to convert bytes to human readable format
+bytes_to_human() {
+    local bytes=$1
+    local units=("B" "KB" "MB" "GB" "TB")
+    local unit=0
+
+    while [ $bytes -ge 1024 ] && [ $unit -lt 4 ]; do
+        bytes=$((bytes / 1024))
+        unit=$((unit + 1))
+    done
+
+    echo "$bytes ${units[$unit]}"
+}
+
+# Get stats from NameNode
+URL="http://${NAMENODE}:${PORT}/jmx?qry=Hadoop:service=NameNode,name=FSNamesystemState"
+
+echo "========================================="
+echo "HDFS Statistics Report - $(date)"
+echo "========================================="
+
+# Fetch data
+DATA=$(curl -s "$URL")
+
+# Extract values using grep and sed
+FILES=$(echo "$DATA" | grep -o '"FilesTotal"[[:space:]]*:[[:space:]]*[0-9]*' | grep -o '[0-9]*$')
+TOTAL_OBJECTS=$(echo "$DATA" | grep -o '"TotalFiles"[[:space:]]*:[[:space:]]*[0-9]*' | grep -o '[0-9]*$')
+BLOCKS=$(echo "$DATA" | grep -o '"BlocksTotal"[[:space:]]*:[[:space:]]*[0-9]*' | grep -o '[0-9]*$')
+DFS_USED_BYTES=$(echo "$DATA" | grep -o '"CapacityUsed"[[:space:]]*:[[:space:]]*[0-9]*' | grep -o '[0-9]*$')
+
+# Calculate directories
+DIRS=$((TOTAL_OBJECTS - FILES))
+
+# Format DFS Used
+DFS_USED=$(bytes_to_human $DFS_USED_BYTES)
+
+# Display results
+echo "1) DFS Used:          $DFS_USED"
+echo "2) Files:             $FILES"
+echo "   Directories:       $DIRS"
+echo "3) Total Blocks:      $BLOCKS"
+echo "========================================="
