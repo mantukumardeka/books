@@ -88,3 +88,91 @@ echo "Report sent to: $EMAIL"
 
 curl -s "http://enchbcclprcmp64.srv.bmogc.net:50070/jmx?qry=Hadoop:service=NameNode,name=FSNamesystemState" | head -50
 
+
+================
+
+
+#!/bin/bash
+
+##############################################
+# HDFS Stats Report - Kerberos + JMX + jq
+##############################################
+
+# Configuration
+NAMENODE="enchbcclprcmp64.srv.bmogc.net"
+PORT="50070"
+EMAIL="your-email@example.com"  # <-- Change this
+REPORT_FILE="/tmp/hdfs_stats_report.txt"
+
+# Function to convert bytes to human readable format
+bytes_to_human() {
+    local bytes="$1"
+
+    if [ -z "$bytes" ] || ! [[ "$bytes" =~ ^[0-9]+$ ]]; then
+        echo "N/A"
+        return
+    fi
+
+    if (( bytes < 1024 )); then
+        echo "${bytes} B"
+    elif (( bytes < 1048576 )); then
+        echo "$((bytes / 1024)) KB"
+    elif (( bytes < 1073741824 )); then
+        echo "$((bytes / 1048576)) MB"
+    elif (( bytes < 1099511627776 )); then
+        echo "$((bytes / 1073741824)) GB"
+    elif (( bytes < 1125899906842624 )); then
+        echo "$((bytes / 1099511627776)) TB"
+    else
+        echo "$((bytes / 1125899906842624)) PB"
+    fi
+}
+
+# JMX endpoint
+URL="http://${NAMENODE}:${PORT}/jmx?qry=Hadoop:service=NameNode,name=FSNamesystemState"
+
+# Fetch JSON from NameNode (requires kinit already done)
+DATA=$(curl --negotiate -u: -s "$URL")
+
+# Extract metrics using jq
+FILES=$(echo "$DATA" | jq -r '.beans[0].FilesTotal')
+BLOCKS=$(echo "$DATA" | jq -r '.beans[0].BlocksTotal')
+DFS_USED_BYTES=$(echo "$DATA" | jq -r '.beans[0].CapacityUsed')
+DFS_CAPACITY=$(echo "$DATA" | jq -r '.beans[0].CapacityTotal')
+DFS_REMAINING=$(echo "$DATA" | jq -r '.beans[0].CapacityRemaining')
+
+# Defaults if null
+FILES=${FILES:-0}
+BLOCKS=${BLOCKS:-0}
+DFS_USED_BYTES=${DFS_USED_BYTES:-0}
+DFS_CAPACITY=${DFS_CAPACITY:-0}
+DFS_REMAINING=${DFS_REMAINING:-0}
+
+# Convert to human readable
+DFS_USED=$(bytes_to_human "$DFS_USED_BYTES")
+DFS_CAPACITY_HR=$(bytes_to_human "$DFS_CAPACITY")
+DFS_REMAINING_HR=$(bytes_to_human "$DFS_REMAINING")
+
+# Create report
+cat > "$REPORT_FILE" << EOF
+=========================================
+HDFS Statistics Report - $(date)
+=========================================
+1) DFS Capacity:      $DFS_CAPACITY_HR
+2) DFS Used:          $DFS_USED
+3) DFS Remaining:     $DFS_REMAINING_HR
+4) Files:             $FILES
+5) Total Blocks:      $BLOCKS
+=========================================
+EOF
+
+# Show report
+cat "$REPORT_FILE"
+
+# Send report via email
+cat "$REPORT_FILE" | mailx -s "HDFS Statistics Report" "$EMAIL"
+
+echo ""
+echo "Report sent to: $EMAIL"
+
+
