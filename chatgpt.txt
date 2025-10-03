@@ -99,7 +99,7 @@ curl -s "http://enchbcclprcmp64.srv.bmogc.net:50070/jmx?qry=Hadoop:service=NameN
 ##############################################
 
 # Configuration
-NAMENODE="enchbcclprcmp64.srv.bmogc.net"
+NAMENODE=""
 PORT="50070"
 EMAIL="your-email@example.com"  # <-- Change this
 REPORT_FILE="/tmp/hdfs_stats_report.txt"
@@ -185,7 +185,7 @@ echo "Report sent to: $EMAIL"
 ##############################################
 
 # Configuration
-NAMENODE="enchbcclprcmp64.srv.bmogc.net"
+NAMENODE=""
 PORT="50070"
 EMAIL="your-email@example.com"  # <-- Change this
 REPORT_FILE="/tmp/hdfs_stats_report.txt"
@@ -272,7 +272,7 @@ echo "Report sent to: $EMAIL"
 ##############################################
 
 # Configuration
-NAMENODE="enchbcclprcmp64.srv.bmogc.net"
+NAMENODE=""
 PORT="50070"
 EMAIL="your-email@example.com"  # <-- Change this
 REPORT_FILE="/tmp/hdfs_stats_report.txt"
