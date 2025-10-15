@@ -82,3 +82,15 @@ cat "$REPORT_FILE" | mailx -s "HDFS Statistics Report" -S smtp=smtp.bmogc.net ma
 
 echo "REPORT FILE sent to recipients."
 cat "$REPORT_FILE"
+
+
+===============
+
+
+| Metric            | Expression                                                                                                |
+| ----------------- | --------------------------------------------------------------------------------------------------------- |
+| **DFS Capacity**  | `trim(replace(first(split(last(split(body('html_to_text'), 'DFS Capacity:')), 'DFS Used:')), 'PB', ''))`  |
+| **DFS Used**      | `trim(replace(first(split(last(split(body('html_to_text'), 'DFS Used:')), 'DFS Remaining:')), 'PB', ''))` |
+| **DFS Remaining** | `trim(replace(first(split(last(split(body('html_to_text'), 'DFS Remaining:')), 'Files:')), 'PB', ''))`    |
+| **Files**         | `trim(first(split(last(split(body('html_to_text'), 'Files:')), 'Total Blocks:')))`                        |
+| **Total Blocks**  | `trim(last(split(body('html_to_text'), 'Total Blocks:')))`                                                |
