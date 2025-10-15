@@ -94,3 +94,26 @@ cat "$REPORT_FILE"
 | **DFS Remaining** | `trim(replace(first(split(last(split(body('html_to_text'), 'DFS Remaining:')), 'Files:')), 'PB', ''))`    |
 | **Files**         | `trim(first(split(last(split(body('html_to_text'), 'Files:')), 'Total Blocks:')))`                        |
 | **Total Blocks**  | `trim(last(split(body('html_to_text'), 'Total Blocks:')))`                                                |
+
+
+
+
+{
+  "version": { "number": 2 },
+  "title": "Hadoop baseline",
+  "type": "page",
+  "body": {
+    "storage": {
+      "value": "<p><b>HDFS Statistics Report - @{utcNow()}</b></p>
+      <table border='1' style='border-collapse:collapse;'>
+        <tr><th>Metric</th><th>Value</th></tr>
+        <tr><td>DFS Capacity</td><td>@{trim(replace(first(split(last(split(body('html_to_text'), 'DFS Capacity:')), 'DFS Used:')), 'PB', ''))}</td></tr>
+        <tr><td>DFS Used</td><td>@{trim(replace(first(split(last(split(body('html_to_text'), 'DFS Used:')), 'DFS Remaining:')), 'PB', ''))}</td></tr>
+        <tr><td>DFS Remaining</td><td>@{trim(replace(first(split(last(split(body('html_to_text'), 'DFS Remaining:')), 'Files:')), 'PB', ''))}</td></tr>
+        <tr><td>Files</td><td>@{trim(first(split(last(split(body('html_to_text'), 'Files:')), 'Total Blocks:')))}</td></tr>
+        <tr><td>Total Blocks</td><td>@{trim(last(split(body('html_to_text'), 'Total Blocks:')))}</td></tr>
+      </table>",
+      "representation": "storage"
+    }
+  }
+}
