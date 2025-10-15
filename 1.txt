@@ -1,0 +1,84 @@
+#!/bin/bash
+
+###########################################
+# HDFS Stats Report - Numeric Only Output
+###########################################
+
+# Configuration
+NAMENODE="enchbcclprcmp64.srv.bmogc.net"
+PORT="50070"
+EMAIL="mantu.kumar@bmo.com"
+REPORT_FILE="/hbp-staging/home/sa_idphdpsvcrd/deployment/deka/hdfs_stats_report.txt"
+
+# Function to convert bytes to human readable numeric format with 2 decimals (no unit)
+bytes_to_number() {
+  local bytes="$1"
+  local value
+
+  if [ -z "$bytes" ] || ! [[ "$bytes" =~ ^[0-9]+$ ]]; then
+    echo "0"
+    return
+  fi
+
+  if (( bytes < 1024 )); then
+    value=$(echo "scale=2; $bytes" | bc)
+  elif (( bytes < 1048576 )); then
+    value=$(echo "scale=2; $bytes/1024" | bc)
+  elif (( bytes < 1073741824 )); then
+    value=$(echo "scale=2; $bytes/1048576" | bc)
+  elif (( bytes < 1099511627776 )); then
+    value=$(echo "scale=2; $bytes/1073741824" | bc)
+  elif (( bytes < 1125899906842624 )); then
+    value=$(echo "scale=2; $bytes/1099511627776" | bc)
+  else
+    value=$(echo "scale=2; $bytes/1125899906842624" | bc)
+  fi
+
+  echo "$value"
+}
+
+# JMX endpoint
+URL="http://${NAMENODE}:${PORT}/jmx?qry=Hadoop:service=NameNode,name=FSNamesystemState"
+
+# Fetch JSON from NameNode
+DATA=$(curl --negotiate -u: -s "$URL")
+
+# Extract metrics
+FILES=$(echo "$DATA" | grep -o '"FilesTotal"[^:]*:[[:space:]]*[0-9]*' | awk -F: '{print $2}' | tr -d ' ')
+BLOCKS=$(echo "$DATA" | grep -o '"BlocksTotal"[^:]*:[[:space:]]*[0-9]*' | awk -F: '{print $2}' | tr -d ' ')
+DFS_USED_BYTES=$(echo "$DATA" | grep -o '"CapacityUsed"[^:]*:[[:space:]]*[0-9]*' | awk -F: '{print $2}' | tr -d ' ')
+DFS_CAPACITY=$(echo "$DATA" | grep -o '"CapacityTotal"[^:]*:[[:space:]]*[0-9]*' | awk -F: '{print $2}' | tr -d ' ')
+DFS_REMAINING=$(echo "$DATA" | grep -o '"CapacityRemaining"[^:]*:[[:space:]]*[0-9]*' | awk -F: '{print $2}' | tr -d ' ')
+
+# Defaults if empty
+FILES=${FILES:-0}
+BLOCKS=${BLOCKS:-0}
+DFS_USED_BYTES=${DFS_USED_BYTES:-0}
+DFS_CAPACITY=${DFS_CAPACITY:-0}
+DFS_REMAINING=${DFS_REMAINING:-0}
+
+# Convert to numeric-only human readable format
+DFS_USED=$(bytes_to_number "$DFS_USED_BYTES")
+DFS_CAPACITY_HR=$(bytes_to_number "$DFS_CAPACITY")
+DFS_REMAINING_HR=$(bytes_to_number "$DFS_REMAINING")
+
+# Create report file
+cat > "$REPORT_FILE" << EOF
+HDFS Statistics Report - $(date "+%Y-%m-%d")
+
+DFS Capacity:     $DFS_CAPACITY_HR
+DFS Used:         $DFS_USED
+DFS Remaining:    $DFS_REMAINING_HR
+Files:            $FILES
+Total Blocks:     $BLOCKS
+_________________________________________
+EOF
+
+# Display report on console
+cat "$REPORT_FILE"
+
+# Send email
+cat "$REPORT_FILE" | mailx -s "HDFS Statistics Report" -S smtp=smtp.bmogc.net mantu.kumar@bmo.com steve.tung@bmo.com hesham.abouaisha@bmo.com
+
+echo "REPORT FILE sent to recipients."
+cat "$REPORT_FILE"
