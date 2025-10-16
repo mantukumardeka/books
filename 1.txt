@@ -5,10 +5,10 @@
 ###########################################
 
 # Configuration
-NAMENODE="enchbcclprcmp64.srv.bmogc.net"
+NAMENODE=""
 PORT="50070"
-EMAIL="mantu.kumar@bmo.com"
-REPORT_FILE="/hbp-staging/home/sa_idphdpsvcrd/deployment/deka/hdfs_stats_report.txt"
+EMAIL=""
+REPORT_FILE="/deployment/deka/hdfs_stats_report.txt"
 
 # Function to convert bytes to human readable numeric format with 2 decimals (no unit)
 bytes_to_number() {
@@ -78,7 +78,7 @@ EOF
 cat "$REPORT_FILE"
 
 # Send email
-cat "$REPORT_FILE" | mailx -s "HDFS Statistics Report" -S smtp=smtp.bmogc.net mantu.kumar@bmo.com steve.tung@bmo.com hesham.abouaisha@bmo.com
+cat "$REPORT_FILE" | mailx -s "HDFS Statistics Report" -S smtp=smtp.bmogc.net mantu.kumar
 
 echo "REPORT FILE sent to recipients."
 cat "$REPORT_FILE"
